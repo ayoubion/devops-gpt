@@ -1,0 +1,40 @@
+services:
+
+  chat-api:
+    build: ./backend          # Construit l'image depuis le Dockerfile du dossier backend
+    container_name: chat-api
+    ports:
+      - "3000:3000"           # port_hote:port_conteneur
+    environment:
+      - NODE_ENV=development
+    networks:
+      - devopsgpt-network
+    depends_on:
+      - cache                 # L'API démarre après Redis
+
+  chat-ui:
+    build: ./frontend
+    container_name: chat-ui
+    ports:
+      - "5173:5173"
+    environment:
+      # Permet au frontend de contacter l'API par son nom de service
+      - VITE_API_URL=http://chat-api:3000
+    networks:
+      - devopsgpt-network
+    depends_on:
+      - chat-api              # L'UI démarre après l'API
+
+  cache:
+    image: redis:7-alpine     # On utilise l'image officielle, pas de Dockerfile
+    container_name: cache
+    ports:
+      - "6379:6379"
+    networks:
+      - devopsgpt-network
+
+# Le réseau commun permet aux services de se parler par leur nom
+# ex: depuis chat-api, on peut faire fetch("http://cache:6379")
+networks:
+  devopsgpt-network:
+    driver: bridge
